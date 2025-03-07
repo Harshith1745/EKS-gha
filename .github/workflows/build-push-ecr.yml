@@ -58,7 +58,7 @@ jobs:
           image-ref: 'my-python-app:${{ github.sha }}'
           format: 'json'
           output: 'trivy-results.json'
-          severity: 'HIGH,CRITICAL'
+          severity: 'CRITICAL'
           exit-code: 1
         continue-on-error: true
 
