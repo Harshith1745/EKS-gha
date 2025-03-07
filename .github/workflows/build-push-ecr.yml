@@ -5,6 +5,11 @@ on:
     branches:
       - master
 
+env:
+  ECR_REPOSITORY: my-python-app
+  EKS_CLUSTER_NAME: eks-github-actions
+  AWS_REGION: us-east-1
+
 jobs:
   build-scan-push:
     runs-on: ubuntu-latest
@@ -86,3 +91,16 @@ jobs:
       - name: Push Docker image to ECR
         run: |
           docker push ${{ steps.login-ecr.outputs.registry }}/my-python-app:${{ github.sha }}
+          
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+  
+      - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
+          IMAGE_TAG: ${{ steps.commit.outputs.short }}
+        run: |
+          sed -i.bak "s|DOCKER_IMAGE|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" manifests/deployment.yaml && \
+          kubectl apply -f manifests/deployment.yaml
+          kubectl apply -f manifests/service.yaml
+          
