@@ -56,10 +56,12 @@ jobs:
       - name: Scan Docker image with Trivy
         id: trivy-scan
         run: |
+          mkdir -p trivy-results
+          
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy:latest \
-            image --severity HIGH,CRITICAL --exit-code 1 --format json --output trivy-results.json my-python-app:${{ github.sha }}
+            image --severity HIGH,CRITICAL --exit-code 1 --format json --output $(pwd)/trivy-results/trivy-results.json my-python-app:${{ github.sha }}
         continue-on-error: true
         
       - name: Debug working directory
