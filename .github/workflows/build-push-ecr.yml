@@ -56,14 +56,25 @@ jobs:
       - name: Scan Docker image with Trivy
         id: trivy-scan
         run: |
+          # Create the trivy-results directory
           mkdir -p trivy-results
-          
+
+          # Run Trivy and save the output to the trivy-results directory
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $(pwd)/trivy-results:/trivy-results \  # Mount the trivy-results directory
             aquasec/trivy:latest \
-            image --severity HIGH,CRITICAL --exit-code 1 --format json --output $(pwd)/trivy-results/trivy-results.json my-python-app:${{ github.sha }}
+            image --severity HIGH,CRITICAL --exit-code 1 --format json --output /trivy-results/trivy-results.json my-python-app:${{ github.sha }}
+
+          # Check if the file was created
+          if [ -f "trivy-results/trivy-results.json" ]; then
+            echo "Trivy scan results saved to trivy-results/trivy-results.json"
+          else
+            echo "Trivy scan results file not found!"
+            exit 1
+          fi
         continue-on-error: true
-        
+
       - name: Debug working directory
         run: |
           ls -la
@@ -72,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-results
-          path: $(pwd)/trivy-results/trivy-results.json
+          path: trivy-results/trivy-results.json
 
       - name: Check Trivy scan results
         if: steps.trivy-scan.outcome == 'failure'
