@@ -52,26 +52,26 @@ jobs:
         run: |
           docker build -t my-python-app:${{ github.sha }} .
 
-      - name: Install Trivy
-        run: |
-            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
-
       - name: Run Trivy scan
-        run: |
-          mkdir -p trivy-results
-          trivy image --severity HIGH,CRITICAL --exit-code 1 --format json --output trivy-results/trivy-results.json my-python-app:${{ github.sha }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'my-python-app:${{ github.sha }}'
+          format: 'json'
+          output: 'trivy-results.json'
+          severity: 'HIGH,CRITICAL'
+          exit-code: 1
         continue-on-error: true
 
       - name: Debug working directory
         run: |
           ls -la
-          ls -la trivy-results
+          
 
       - name: Upload Trivy scan results
         uses: actions/upload-artifact@v4
         with:
           name: trivy-results
-          path: trivy-results/trivy-results.json
+          path: trivy-results.json
 
       - name: Check Trivy scan results
         if: steps.trivy-scan.outcome == 'failure'
