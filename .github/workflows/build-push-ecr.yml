@@ -52,27 +52,14 @@ jobs:
         run: |
           docker build -t my-python-app:${{ github.sha }} .
 
-
-      - name: Scan Docker image with Trivy
-        id: trivy-scan
+      - name: Install Trivy
         run: |
-          # Create the trivy-results directory
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+
+      - name: Run Trivy scan
+        run: |
           mkdir -p trivy-results
-
-          # Run Trivy and save the output to the trivy-results directory
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v $(pwd)/trivy-results:/trivy-results \  # Mount the trivy-results directory
-            aquasec/trivy:latest \
-            image --severity HIGH,CRITICAL --exit-code 1 --format json --output /trivy-results/trivy-results.json my-python-app:${{ github.sha }}
-
-          # Check if the file was created
-          if [ -f "trivy-results/trivy-results.json" ]; then
-            echo "Trivy scan results saved to trivy-results/trivy-results.json"
-          else
-            echo "Trivy scan results file not found!"
-            exit 1
-          fi
+          trivy image --severity HIGH,CRITICAL --exit-code 1 --format json --output trivy-results/trivy-results.json my-python-app:${{ github.sha }}
         continue-on-error: true
 
       - name: Debug working directory
