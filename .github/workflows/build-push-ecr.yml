@@ -3,7 +3,7 @@ name: Build, Scan, and Push to ECR
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-scan-push:
