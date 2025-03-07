@@ -97,10 +97,13 @@ jobs:
   
       - name: Deploy to EKS
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
-          IMAGE_TAG: ${{ steps.commit.outputs.short }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          sed -i.bak "s|DOCKER_IMAGE|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" manifests/deployment.yaml && \
+          # Replace the placeholder in deployment.yaml with the ECR image URI
+          sed -i "s|DOCKER_IMAGE|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" manifests/deployment.yaml
+
+          # Apply the Kubernetes manifests
           kubectl apply -f manifests/deployment.yaml
           kubectl apply -f manifests/service.yaml
           
