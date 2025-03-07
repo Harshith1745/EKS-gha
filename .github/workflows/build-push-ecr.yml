@@ -78,6 +78,7 @@ jobs:
       - name: Debug working directory
         run: |
           ls -la
+          ls -la trivy-results
 
       - name: Upload Trivy scan results
         uses: actions/upload-artifact@v4
