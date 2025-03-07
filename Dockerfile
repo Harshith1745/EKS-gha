@@ -1,19 +1,17 @@
-# Use a smaller base image
-FROM python:3.9-alpine
+# Stage 1: Build
+FROM python:3.9-alpine AS builder
 
-# Set the working directory
 WORKDIR /app
-
-# Copy only the requirements file first to leverage Docker layer caching
 COPY requirements.txt .
-
-# Install dependencies and remove cache to reduce image size
 RUN apk add --no-cache gcc musl-dev && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt && \
     apk del gcc musl-dev
 
-# Copy the rest of the application code
+# Stage 2: Final Image
+FROM python:3.9-alpine
+
+WORKDIR /app
+COPY --from=builder /install /usr/local
 COPY . .
 
-# Run the application
 CMD ["python", "app.py"]
