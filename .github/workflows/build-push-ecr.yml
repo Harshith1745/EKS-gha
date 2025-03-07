@@ -93,9 +93,8 @@ jobs:
           docker push ${{ steps.login-ecr.outputs.registry }}/my-python-app:${{ github.sha }}
           
       - name: Update kube config
-        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION --role-arn arn:aws:iam::939302967516:user/EKS
 
-        
       - name: Verify kubectl access
         run: |
           kubectl get nodes
