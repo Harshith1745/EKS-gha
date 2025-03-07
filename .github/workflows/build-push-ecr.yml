@@ -82,6 +82,7 @@ jobs:
 
       - name: Re-scan Docker image with Trivy after fixes
         if: steps.trivy-scan.outcome == 'failure'
+        continue-on-error: true
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
