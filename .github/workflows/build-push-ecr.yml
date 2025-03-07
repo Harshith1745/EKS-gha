@@ -1,4 +1,4 @@
-name: Build, Scan, and Push to ECR
+name: Build, Scan, Patch, and Push to ECR
 
 on:
   push:
@@ -11,6 +11,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Bandit for Python security scanning
+        run: |
+          pip install bandit
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r . -f json -o bandit-results.json
+        continue-on-error: true
+
+      - name: Upload Bandit scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: bandit-results
+          path: bandit-results.json
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -32,18 +52,41 @@ jobs:
 
       - name: Scan Docker image with Trivy
         id: trivy-scan
-        continue-on-error: true  # Continue even if Trivy finds vulnerabilities
+        continue-on-error: true
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy:latest \
-            image --severity HIGH,CRITICAL --exit-code 1 my-python-app:${{ github.sha }}
+            image --severity HIGH,CRITICAL --exit-code 1 --format json --output trivy-results.json my-python-app:${{ github.sha }}
+
+      - name: Upload Trivy scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-results
+          path: trivy-results.json
 
       - name: Check Trivy scan results
         if: steps.trivy-scan.outcome == 'failure'
         run: |
           echo "Trivy found vulnerabilities in the Docker image."
           echo "Proceeding with the next steps, but please review the Trivy scan report."
+
+      - name: Attempt to fix vulnerabilities
+        if: steps.trivy-scan.outcome == 'failure'
+        run: |
+          echo "Attempting to fix vulnerabilities..."
+          # Example: Update the base image in Dockerfile
+          sed -i 's/FROM python:3.9-slim/FROM python:3.9-slim-buster/' Dockerfile
+          # Rebuild the Docker image
+          docker build -t my-python-app:${{ github.sha }} .
+
+      - name: Re-scan Docker image with Trivy after fixes
+        if: steps.trivy-scan.outcome == 'failure'
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest \
+            image --severity HIGH,CRITICAL --exit-code 1 my-python-app:${{ github.sha }}
 
       - name: Tag Docker image
         run: |
